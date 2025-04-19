@@ -72,7 +72,7 @@ export default function Onboarding() {
   const handleSignIn = async () => {
     try {
       await AsyncStorage.setItem('onboardingComplete', 'true');
-      router.replace('/(tabs)');
+      router.replace('/signup');
     } catch (error) {
       console.error('Error saving onboarding status:', error);
     }

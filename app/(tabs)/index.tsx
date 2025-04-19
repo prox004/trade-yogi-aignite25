@@ -1,11 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Animated } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Animated,
+  StyleSheet,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { NseIndia } from "stock-nse-india";
+import { NseIndia } from 'stock-nse-india';
 import { Tabs } from 'expo-router';
-import { router, useRouter } from 'expo-router';
-import NewsFeed from '../../components/NewsFeed';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Stock {
   symbol: string;
@@ -26,7 +33,7 @@ const NiftyTicker = () => {
   const [niftyData, setNiftyData] = useState<NiftyData[]>([]);
   const [loading, setLoading] = useState(true);
   const scrollX = new Animated.Value(0);
-  const ANIMATION_DURATION = 100000; // 100 seconds for one complete scroll
+  const ANIMATION_DURATION = 80000; // 80 seconds for one complete scroll
   const animationRef = React.useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
@@ -39,35 +46,6 @@ const NiftyTicker = () => {
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (niftyData.length > 0) {
-      const totalWidth = niftyData.length * 200;
-      
-      if (animationRef.current) {
-        animationRef.current.stop();
-      }
-
-      scrollX.setValue(0);
-
-      animationRef.current = Animated.loop(
-        Animated.sequence([
-          Animated.timing(scrollX, {
-            toValue: -totalWidth,
-            duration: ANIMATION_DURATION,
-            useNativeDriver: true,
-          }),
-          Animated.timing(scrollX, {
-            toValue: 0,
-            duration: 0,
-            useNativeDriver: true,
-          })
-        ])
-      );
-
-      animationRef.current.start();
-    }
-  }, [niftyData]);
 
   const fetchNiftyData = async () => {
     try {
@@ -90,6 +68,39 @@ const NiftyTicker = () => {
     }
   };
 
+  useEffect(() => {
+    if (niftyData.length > 0) {
+      const totalWidth = niftyData.length * 200;
+      
+      // Stop any existing animation
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
+
+      // Reset the scroll position
+      scrollX.setValue(0);
+
+      // Create new animation
+      animationRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(scrollX, {
+            toValue: -totalWidth,
+            duration: ANIMATION_DURATION,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scrollX, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          })
+        ])
+      );
+
+      // Start the animation
+      animationRef.current.start();
+    }
+  }, [niftyData]);
+
   if (loading) {
     return (
       <View style={styles.tickerContainer}>
@@ -97,26 +108,26 @@ const NiftyTicker = () => {
       </View>
     );
   }
-
+  
   return (
     <View style={styles.tickerContainer}>
       <Animated.View
-        style={[
-          styles.tickerContent,
-          {
-            transform: [{ translateX: scrollX }],
-          },
-        ]}
+        style={[styles.tickerContent, { transform: [{ translateX: scrollX }] }]}
       >
-        {[...niftyData, ...niftyData].map((stock, index) => (
-          <View key={index} style={styles.tickerItem}>
+        {[...niftyData, ...niftyData].map((stock, idx) => (
+          <View key={idx} style={styles.tickerItem}>
             <Text style={styles.tickerSymbol}>{stock.symbol}</Text>
-            <Text style={styles.tickerPrice}>₹{stock.lastPrice.toLocaleString('en-IN')}</Text>
-            <Text style={[
-              styles.tickerChange,
-              { color: stock.pChange >= 0 ? '#34C759' : '#FF3B30' }
-            ]}>
-              {stock.pChange >= 0 ? '+' : ''}{stock.pChange.toFixed(2)}%
+            <Text style={styles.tickerPrice}>
+              ₹{stock.lastPrice.toLocaleString('en-IN')}
+            </Text>
+            <Text
+              style={[
+                styles.tickerChange,
+                { color: stock.pChange >= 0 ? '#34C759' : '#FF3B30' },
+              ]}
+            >
+              {stock.pChange >= 0 ? '+' : ''}
+              {stock.pChange.toFixed(2)}%
             </Text>
           </View>
         ))}
@@ -126,28 +137,19 @@ const NiftyTicker = () => {
 };
 
 export default function HomeScreen() {
-  const [portfolioBalance, setPortfolioBalance] = useState<string>('0');
+  const [portfolioBalance, setPortfolioBalance] = useState('0');
   const [topGainers, setTopGainers] = useState<Stock[]>([]);
   const [topLosers, setTopLosers] = useState<Stock[]>([]);
   const [activeTab, setActiveTab] = useState<'gainers' | 'losers'>('gainers');
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    loadBalance();
-    fetchStocks();
-    const interval = setInterval(fetchStocks, 60000); // Refresh every minute
-    return () => clearInterval(interval);
-  }, []);
-
   const loadBalance = async () => {
     try {
-      const balance = await AsyncStorage.getItem('portfolioBalance');
-      if (balance) {
-        setPortfolioBalance(balance);
-      }
-    } catch (error) {
-      console.error('Error loading balance:', error);
+      const stored = await AsyncStorage.getItem('portfolioBalance');
+      if (stored) setPortfolioBalance(stored);
+    } catch (err) {
+      console.error('Portfolio load error:', err);
     }
   };
 
@@ -155,33 +157,37 @@ export default function HomeScreen() {
     try {
       setLoading(true);
       const nseIndia = new NseIndia();
-      const response = await nseIndia.getEquityStockIndices("NIFTY 50");
-      
-      if (response && response.data) {
+      const response = await nseIndia.getEquityStockIndices('NIFTY 50');
+
+      if (response?.data) {
         const stocks: Stock[] = response.data.map((stock: any) => ({
           symbol: stock.symbol,
           lastPrice: stock.lastPrice,
           change: stock.change,
           pChange: stock.pChange,
-          companyName: stock.meta?.companyName || stock.symbol
+          companyName: stock.meta?.companyName || stock.symbol,
         }));
 
-        // Sort for gainers and losers
-        const sortedStocks = stocks.sort((a, b) => b.pChange - a.pChange);
-        setTopGainers(sortedStocks.slice(0, 10));
-        setTopLosers(sortedStocks.slice(-10).reverse());
+        const sorted = stocks.sort((a, b) => b.pChange - a.pChange);
+        setTopGainers(sorted.slice(0, 10));
+        setTopLosers(sorted.slice(-10).reverse());
       }
-    } catch (error) {
-      console.error('Error fetching stocks:', error);
+    } catch (err) {
+      console.error('Stocks fetch error:', err);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadBalance();
+    fetchStocks();
+    const interval = setInterval(fetchStocks, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   const renderStockItem = ({ item }: { item: Stock }) => (
-    <TouchableOpacity
-      onPress={() => router.push(`/stock/${item.symbol}`)}
-    >
+    <TouchableOpacity onPress={() => router.push(`/stock/${item.symbol}`)}>
       <LinearGradient
         colors={['#FFFFFF', '#F8F8F8']}
         style={styles.stockItem}
@@ -190,53 +196,65 @@ export default function HomeScreen() {
       >
         <View style={styles.stockInfo}>
           <Text style={styles.stockSymbol}>{item.symbol}</Text>
-          <Text style={styles.companyName} numberOfLines={1}>{item.companyName}</Text>
-          <Text style={styles.stockPrice}>₹{item.lastPrice.toLocaleString('en-IN', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-          })}</Text>
+          <Text style={styles.companyName} numberOfLines={1}>
+            {item.companyName}
+          </Text>
+          <Text style={styles.stockPrice}>
+            ₹
+            {item.lastPrice.toLocaleString('en-IN', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </Text>
         </View>
         <View style={styles.stockChange}>
-          <Text style={[
-            styles.changeText,
-            { color: item.pChange >= 0 ? '#34C759' : '#FF3B30' }
-          ]}>
-            {item.pChange >= 0 ? '+' : ''}{item.pChange.toFixed(2)}%
+          <Text
+            style={[
+              styles.changeText,
+              { color: item.pChange >= 0 ? '#34C759' : '#FF3B30' },
+            ]}
+          >
+            {item.pChange >= 0 ? '+' : ''}
+            {item.pChange.toFixed(2)}%
           </Text>
-          <Text style={[
-            styles.changeAmount,
-            { color: item.pChange >= 0 ? '#34C759' : '#FF3B30' }
-          ]}>
-            {item.change >= 0 ? '+' : ''}{item.change.toFixed(2)}
+          <Text
+            style={[
+              styles.changeAmount,
+              { color: item.pChange >= 0 ? '#34C759' : '#FF3B30' },
+            ]}
+          >
+            {item.change >= 0 ? '+' : ''}
+            {item.change.toFixed(2)}
           </Text>
         </View>
       </LinearGradient>
     </TouchableOpacity>
   );
 
-  const handleResetOnboarding = async () => {
-    try {
-      await AsyncStorage.removeItem('onboardingComplete');
-      router.replace('/onboarding');
-    } catch (error) {
-      console.error('Error clearing onboarding status:', error);
-    }
-  };
-
   return (
     <View style={styles.container}>
-      <Tabs.Screen
-        options={{
-          headerShown: false,
-        }}
-      />
+      <Tabs.Screen options={{ headerShown: false }} />
 
       <View style={styles.content}>
+        <View style={styles.customHeader}>
+          <View style={styles.headerLeft}>
+            <Ionicons
+              name="person-circle-outline"
+              size={44}
+              color="#1E2A3B"
+              style={styles.profileIcon}
+            />
+            <Text style={styles.greetingText}>Hey There</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.dematButton}
+            onPress={() => router.push('/demat')}
+          >
+            <Text style={styles.dematButtonText}>Open Demat Account</Text>
+          </TouchableOpacity>
+        </View>
+
         <NiftyTicker />
-        
-        <TouchableOpacity style={styles.resetButton} onPress={handleResetOnboarding}>
-          <Text style={styles.resetButtonText}>Reset Onboarding</Text>
-        </TouchableOpacity>
 
         <LinearGradient
           colors={['#1E2A3B', '#2C3E50']}
@@ -246,31 +264,32 @@ export default function HomeScreen() {
         >
           <Text style={styles.balanceLabel}>Portfolio Balance</Text>
           <Text style={styles.balanceAmount}>
-            ₹{parseFloat(portfolioBalance).toLocaleString('en-IN', {
+            ₹
+            {parseFloat(portfolioBalance).toLocaleString('en-IN', {
               minimumFractionDigits: 2,
-              maximumFractionDigits: 2
+              maximumFractionDigits: 2,
             })}
           </Text>
         </LinearGradient>
 
         <View style={styles.stocksSection}>
           <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'gainers' && styles.activeTab]}
-              onPress={() => setActiveTab('gainers')}
-            >
-              <Text style={[styles.tabText, activeTab === 'gainers' && styles.activeTabText]}>
-                Top Gainers
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'losers' && styles.activeTab]}
-              onPress={() => setActiveTab('losers')}
-            >
-              <Text style={[styles.tabText, activeTab === 'losers' && styles.activeTabText]}>
-                Top Losers
-              </Text>
-            </TouchableOpacity>
+            {(['gainers', 'losers'] as const).map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                style={[styles.tab, activeTab === tab && styles.activeTab]}
+                onPress={() => setActiveTab(tab)}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    activeTab === tab && styles.activeTabText,
+                  ]}
+                >
+                  {`Top ${tab.charAt(0).toUpperCase() + tab.slice(1)}`}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           <FlatList
@@ -290,6 +309,40 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingTop: 10,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileIcon: {
+    marginRight: 10,
+  },
+  greetingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E2A3B',
+  },
+  dematButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  dematButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   header: {
     paddingTop: 20,
@@ -318,10 +371,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     opacity: 0.8,
     marginTop: 4,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
   },
   balanceCard: {
     padding: 24,
@@ -473,17 +522,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000000',
     marginHorizontal: 12,
-  },
-  resetButton: {
-    backgroundColor: 'transparent',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E6F0FF',
-  },
-  resetButtonText: {
-    color: '#E6F0FF',
-    fontSize: 14,
   },
 });

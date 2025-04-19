@@ -308,17 +308,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E0E0E0',
-    marginTop: 4,
-    overflow: 'hidden',
+    marginTop: 1,
+    // overflow: 'hidden', // <-- Remove this
   },
   tickerItem: {
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
-    height: 40,
+    // height: 40, // <-- Remove this so content can size itself naturally
   },
   tickerText: {
-    fontSize: 16,
+    fontSize: 12,
     color: '#000000',
   },
   predictButton: {
