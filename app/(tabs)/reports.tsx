@@ -230,6 +230,11 @@ export default function Reports() {
               </Text>
             </View>
 
+            <View style={styles.predictionCard}>
+              <Text style={styles.predictionLabel}>Data Points Used</Text>
+              <Text style={styles.predictionValue}>{prediction?.data_points_used || 'N/A'}</Text>
+            </View>
+
 
             <TouchableOpacity
               style={styles.backButton}

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Animated,
   StyleSheet,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,6 +14,11 @@ import { NseIndia } from 'stock-nse-india';
 import { Tabs } from 'expo-router';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import WebView from 'react-native-webview';
+import { Image } from 'react-native';
+
+import {Easing } from 'react-native';
+
 
 interface Stock {
   symbol: string;
@@ -142,7 +148,9 @@ export default function HomeScreen() {
   const [topLosers, setTopLosers] = useState<Stock[]>([]);
   const [activeTab, setActiveTab] = useState<'gainers' | 'losers'>('gainers');
   const [loading, setLoading] = useState(true);
+  const [isModalVisible, setModalVisible] = useState(false); // ✅ ADD THIS
   const router = useRouter();
+
 
   const loadBalance = async () => {
     try {
@@ -301,6 +309,60 @@ export default function HomeScreen() {
           />
         </View>
       </View>
+      {/* Floating Gift Button */}
+      <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+  style={{
+    position: 'absolute',
+    bottom: 30,
+    right: 20,
+    zIndex: 1000,
+  }}
+>
+  <Image
+    source={require('../assets/gift.png')}
+    style={{ width: 60, height: 60  ,backgroundColor: '#007AFF',
+      borderRadius: 35,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#007AFF',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 10,
+      }}
+    resizeMode="contain"
+  />
+</TouchableOpacity>
+
+{/* Modal with Embedded Website */}
+<Modal
+  animationType="slide"
+  visible={isModalVisible}
+  transparent={true}
+  onRequestClose={() => setModalVisible(false)}
+>
+  <View style={{ flex: 1, backgroundColor: '#fff' }}>
+    <TouchableOpacity
+      style={{
+        padding: 12,
+        backgroundColor: '#007AFF',
+        alignSelf: 'flex-end',
+        margin: 10,
+        borderRadius: 8,
+        zIndex: 100,
+      }}
+      onPress={() => setModalVisible(false)}
+    >
+      <Text style={{ color: '#fff', fontWeight: 'bold' }}>Close</Text>
+    </TouchableOpacity>
+
+    <WebView
+      source={{ uri: 'https://trade-yogi-llm.vercel.app' }}
+      style={{ flex: 1 }}
+      startInLoadingState
+    />
+  </View>
+</Modal>
     </View>
   );
 }

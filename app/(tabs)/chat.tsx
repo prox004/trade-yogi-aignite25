@@ -1,11 +1,15 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import AIChatbot from '../../components/AIChatbot';
+import { StyleSheet, View } from 'react-native';
+import { WebView } from 'react-native-webview';
 
 export default function Chat() {
   return (
     <View style={styles.container}>
-      <AIChatbot />
+      <WebView
+        source={{ uri: 'https://trade-yogi-chatbot.vercel.app' }}
+        style={styles.webview}
+        startInLoadingState
+      />
     </View>
   );
 }
@@ -13,6 +17,12 @@ export default function Chat() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    padding: 0,
+    margin: 0,
   },
-}); 
+  webview: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+});
