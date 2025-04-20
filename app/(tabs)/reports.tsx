@@ -161,7 +161,7 @@ export default function Reports() {
 
             <View style={styles.warningBox}>
               <Text style={styles.warningText}>
-                ⚠️ Disclaimer: Stock market predictions are not 100% accurate and should not be considered as financial advice. Past performance is not indicative of future results. Please conduct your own research and invest at your own risk.
+                ⚠ Disclaimer: Stock market predictions are not 100% accurate and should not be considered as financial advice. Past performance is not indicative of future results. Please conduct your own research and invest at your own risk.
               </Text>
             </View>
           </View>
@@ -425,4 +425,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
   },
-}); 
+});
