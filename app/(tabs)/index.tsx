@@ -7,6 +7,7 @@ import {
   Animated,
   StyleSheet,
   Modal,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,7 +16,6 @@ import { Tabs } from 'expo-router';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import WebView from 'react-native-webview';
-import { Image } from 'react-native';
 
 import {Easing } from 'react-native';
 
@@ -148,9 +148,10 @@ export default function HomeScreen() {
   const [topLosers, setTopLosers] = useState<Stock[]>([]);
   const [activeTab, setActiveTab] = useState<'gainers' | 'losers'>('gainers');
   const [loading, setLoading] = useState(true);
-  const [isModalVisible, setModalVisible] = useState(false); // ✅ ADD THIS
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const router = useRouter();
-
 
   const loadBalance = async () => {
     try {
@@ -158,6 +159,18 @@ export default function HomeScreen() {
       if (stored) setPortfolioBalance(stored);
     } catch (err) {
       console.error('Portfolio load error:', err);
+    }
+  };
+
+  const loadUserData = async () => {
+    try {
+      const storedName = await AsyncStorage.getItem('userName');
+      const storedImage = await AsyncStorage.getItem('profileImage');
+      
+      if (storedName) setUserName(storedName);
+      if (storedImage) setProfileImage(storedImage);
+    } catch (error) {
+      console.error('Error loading user data:', error);
     }
   };
 
@@ -190,6 +203,7 @@ export default function HomeScreen() {
   useEffect(() => {
     loadBalance();
     fetchStocks();
+    loadUserData();
     const interval = setInterval(fetchStocks, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -246,13 +260,24 @@ export default function HomeScreen() {
       <View style={styles.content}>
         <View style={styles.customHeader}>
           <View style={styles.headerLeft}>
-            <Ionicons
-              name="person-circle-outline"
-              size={44}
-              color="#1E2A3B"
-              style={styles.profileIcon}
-            />
-            <Text style={styles.greetingText}>Hey There</Text>
+            <TouchableOpacity onPress={() => router.push('/profile')}>
+              {profileImage ? (
+                <Image 
+                  source={{ uri: profileImage }} 
+                  style={styles.profileImage} 
+                />
+              ) : (
+                <Ionicons
+                  name="person-circle-outline"
+                  size={44}
+                  color="#1E2A3B"
+                  style={styles.profileIcon}
+                />
+              )}
+            </TouchableOpacity>
+            <Text style={styles.greetingText}>
+              {userName ? `Hey ${userName.split(' ')[0]}` : 'Hey There'}
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.dematButton}
@@ -311,58 +336,57 @@ export default function HomeScreen() {
       </View>
       {/* Floating Gift Button */}
       <TouchableOpacity
-            onPress={() => setModalVisible(true)}
-  style={{
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    zIndex: 1000,
-  }}
->
-  <Image
-    source={require('../assets/gift.png')}
-    style={{ width: 60, height: 60  ,backgroundColor: '#007AFF',
-      borderRadius: 35,
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: '#007AFF',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.5,
-      shadowRadius: 10,
-      }}
-    resizeMode="contain"
-  />
-</TouchableOpacity>
+        onPress={() => setModalVisible(true)}
+        style={{
+          position: 'absolute',
+          bottom: 30,
+          right: 20,
+          zIndex: 1000,
+          backgroundColor: '#007AFF',
+          width: 60,
+          height: 60,
+          borderRadius: 30,
+          justifyContent: 'center',
+          alignItems: 'center',
+          shadowColor: '#007AFF',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.5,
+          shadowRadius: 10,
+          elevation: 5,
+        }}
+      >
+        <Ionicons name="gift" size={30} color="#FFFFFF" />
+      </TouchableOpacity>
 
-{/* Modal with Embedded Website */}
-<Modal
-  animationType="slide"
-  visible={isModalVisible}
-  transparent={true}
-  onRequestClose={() => setModalVisible(false)}
->
-  <View style={{ flex: 1, backgroundColor: '#fff' }}>
-    <TouchableOpacity
-      style={{
-        padding: 12,
-        backgroundColor: '#007AFF',
-        alignSelf: 'flex-end',
-        margin: 10,
-        borderRadius: 8,
-        zIndex: 100,
-      }}
-      onPress={() => setModalVisible(false)}
-    >
-      <Text style={{ color: '#fff', fontWeight: 'bold' }}>Close</Text>
-    </TouchableOpacity>
+      {/* Modal with Embedded Website */}
+      <Modal
+        animationType="slide"
+        visible={isModalVisible}
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: '#fff' }}>
+          <TouchableOpacity
+            style={{
+              padding: 12,
+              backgroundColor: '#007AFF',
+              alignSelf: 'flex-end',
+              margin: 10,
+              borderRadius: 8,
+              zIndex: 100,
+            }}
+            onPress={() => setModalVisible(false)}
+          >
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Close</Text>
+          </TouchableOpacity>
 
-    <WebView
-      source={{ uri: 'https://trade-yogi-llm.vercel.app' }}
-      style={{ flex: 1 }}
-      startInLoadingState
-    />
-  </View>
-</Modal>
+          <WebView
+            source={{ uri: 'https://trade-yogi-llm.vercel.app' }}
+            style={{ flex: 1 }}
+            startInLoadingState
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -584,5 +608,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000000',
     marginHorizontal: 12,
+  },
+  profileImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: 10,
   },
 });
