@@ -231,10 +231,28 @@ export default function Reports() {
             </View>
 
             <View style={styles.predictionCard}>
-              <Text style={styles.predictionLabel}>Data Points Used</Text>
-              <Text style={styles.predictionValue}>{prediction?.data_points_used || 'N/A'}</Text>
+              <Text style={styles.predictionLabel}>Accuracy Percentage</Text>
+              <Text style={styles.predictionValue}>
+                {prediction?.data_points_used ? 
+                  (() => {
+                    const dataPoints = prediction.data_points_used;
+                    let accuracyPercentage = 0;
+                    
+                    if (dataPoints <= 100) {
+                      accuracyPercentage = (dataPoints / 100) * 100;
+                    } else if (dataPoints > 100 && dataPoints <= 150) {
+                      accuracyPercentage = (dataPoints / 150) * 100;
+                    } else if (dataPoints > 150 && dataPoints <= 200) {
+                      accuracyPercentage = (dataPoints / 200) * 100;
+                    } else {
+                      accuracyPercentage = 100; // Cap at 100% for data points > 200
+                    }
+                    
+                    return accuracyPercentage.toFixed(2) + '%';
+                  })() 
+                  : 'N/A'}
+              </Text>
             </View>
-
 
             <TouchableOpacity
               style={styles.backButton}
